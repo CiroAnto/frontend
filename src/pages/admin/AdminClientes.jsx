@@ -43,7 +43,6 @@ const AdminClientes = () => {
   }, []);
 
   //funciones para modal
-  // Funciones para manejar el Modal
     const abrirModal = (cliente) => {
         setClienteAEliminar(cliente);
         setModalAbierto(true);
@@ -69,7 +68,6 @@ const AdminClientes = () => {
         }
     }
 
-    // Filtrar clientes (BLINDADO contra registros incompletos)
     const clientesFiltrados = clientes.filter(cliente => {
         // Usamos valores por defecto ('') por si un cliente viejo no tiene estos campos
         const nombre = cliente?.name || '';

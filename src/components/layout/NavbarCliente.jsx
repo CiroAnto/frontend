@@ -19,9 +19,6 @@ const NavbarCliente = () => {
         </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body1" fontWeight="bold" sx={{ display: { xs: 'none', sm: 'block' } }}>
-            Hola, Fer
-          </Typography>
           <Tooltip title="Cerrar Sesión">
             <Button 
               variant="contained" 

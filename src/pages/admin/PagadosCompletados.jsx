@@ -1,36 +1,79 @@
-import { useState } from 'react';
-import { Box, Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { 
+  Box, Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, 
+  TableHead, TableRow, Button, Chip, CircularProgress 
+} from '@mui/material';
 import { Receipt as ReceiptIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
+
 import AdminNavbar from '@/components/layout/AdminNavbar';
 import BarraBusqueda from '@/components/ui/BarraBusqueda';
 import ReciboModal from '@/components/ui/ReciboModal';
 
-// 1. BASE DE DATOS SIMULADA DE PAGOS COMPLETADOS
-const pagosRealizadosData = [
-  { id: 1, idCliente: 1, nombre: 'Carlos Slim', mes: 'Octubre 2026', monto: 450.00, fechaPago: '02/10/2026', metodo: 'Efectivo' },
-  { id: 2, idCliente: 5, nombre: 'Ana García', mes: 'Octubre 2026', monto: 600.00, fechaPago: '03/10/2026', metodo: 'Transferencia' },
-  { id: 3, idCliente: 2, nombre: 'María Martinez', mes: 'Septiembre 2026', monto: 450.00, fechaPago: '05/09/2026', metodo: 'Tarjeta' },
-];
+// Importamos los servicios para traer la información real
+import { obtenerClientes } from '@/services/clienteService';
+import { obtenerTodosPagos } from '@/services/pagoService';
 
 const PagosCompletados = () => {
-  // 2. Estado para la barra de búsqueda
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
+  const [pagosRealizados, setPagosRealizados] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
   const [reciboSeleccionado, setReciboSeleccionado] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
 
-  // 3. Filtrado en tiempo real
-  const pagosFiltrados = pagosRealizadosData.filter((pago) => {
+  useEffect(() => {
+    const cargarHistorial = async () => {
+      try {
+        // 1. Descargamos ambas listas al mismo tiempo para ahorrar tiempo
+        const [dataPagos, dataClientes] = await Promise.all([
+          obtenerTodosPagos(),
+          obtenerClientes()
+        ]);
+
+        if (Array.isArray(dataPagos)) {
+          // 2. Cruzamos la información: Le pegamos el nombre del cliente al recibo
+          const historialFormateado = dataPagos.map(pago => {
+            const clienteAsociado = Array.isArray(dataClientes) 
+              ? dataClientes.find(c => c.clienteId === pago.clienteId) 
+              : null;
+
+            return {
+              id: pago._id, // El ID de Mongo para la "key" de React
+              folio: pago._id.toString().slice(-6).toUpperCase(), // Un folio corto inventado para el ticket
+              idCliente: pago.clienteId,
+              // Si el cliente fue borrado, ponemos "Desconocido"
+              nombre: clienteAsociado ? `${clienteAsociado.name} ${clienteAsociado.lastname}` : 'Cliente Borrado',
+              mes: pago.mesCorrespondiente,
+              monto: pago.montoPagado,
+              // Convertimos la fecha de Mongo (createdAt) a un formato legible (DD/MM/YYYY)
+              fechaPago: new Date(pago.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+              metodo: pago.metodoPago || 'Efectivo'
+            };
+          });
+
+          setPagosRealizados(historialFormateado);
+        }
+      } catch (error) {
+        console.error('Error al cargar el historial de pagos:', error);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    cargarHistorial();
+  }, []);
+
+  // Filtrado en tiempo real
+  const pagosFiltrados = pagosRealizados.filter((pago) => {
     const busqueda = terminoBusqueda.toLowerCase();
     return (
       pago.nombre.toLowerCase().includes(busqueda) || 
-      pago.idCliente.toString().includes(busqueda) ||
+      pago.idCliente.toLowerCase().includes(busqueda) ||
       pago.mes.toLowerCase().includes(busqueda) ||
       pago.metodo.toLowerCase().includes(busqueda)
     );
   });
 
-  // Función para darle un color distinto a cada método de pago
   const getMetodoChip = (metodo) => {
     switch (metodo) {
       case 'Efectivo':
@@ -52,17 +95,14 @@ const PagosCompletados = () => {
   const cerrarRecibo = () => {
     setModalAbierto(false);
     setTimeout(() => setReciboSeleccionado(null), 300);
-  }
+  };
 
   return (
     <Box sx={{ flexGrow: 1, backgroundColor: '#f4f6f8', minHeight: '100vh', pb: 5 }}>
-      
       <AdminNavbar />
 
       <Container maxWidth="lg">
-        
-        {/* CABECERA */}
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Box sx={{ mb: 4, mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <Box>
             <Typography variant="h4" sx={{ color: '#2c3e50', fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
               Historial de Pagos <CheckCircleIcon sx={{ color: '#27ae60', fontSize: 30 }} />
@@ -73,14 +113,12 @@ const PagosCompletados = () => {
           </Box>
         </Box>
 
-        {/* BARRA DE BÚSQUEDA UNIVERSAL (Reutilizada) */}
         <BarraBusqueda 
           valor={terminoBusqueda} 
           alCambiar={(e) => setTerminoBusqueda(e.target.value)} 
           placeholder="Buscar por cliente, ID, mes o método de pago..." 
         />
 
-        {/* TABLA DE MATERIAL-UI */}
         <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
           <Table sx={{ minWidth: 650 }} aria-label="tabla de pagos completados">
             
@@ -97,14 +135,21 @@ const PagosCompletados = () => {
             </TableHead>
             
             <TableBody>
-              {pagosFiltrados.length > 0 ? (
+              {cargando ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                    <CircularProgress />
+                    <Typography sx={{ mt: 2, color: '#7f8c8d' }}>Cargando historial de transacciones...</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : pagosFiltrados.length > 0 ? (
                 pagosFiltrados.map((pago) => (
                   <TableRow 
                     key={pago.id}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:hover': { backgroundColor: '#f9f9f9' } }}
                   >
                     <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', color: '#3498db' }}>
-                      #{pago.idCliente}
+                      {pago.idCliente}
                     </TableCell>
                     <TableCell sx={{ fontWeight: '500' }}>{pago.nombre}</TableCell>
                     <TableCell>{pago.mes}</TableCell>
@@ -133,7 +178,7 @@ const PagosCompletados = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 5, color: '#7f8c8d' }}>
-                    No se encontraron recibos que coincidan con la búsqueda "{terminoBusqueda}".
+                    {terminoBusqueda ? `No se encontraron recibos que coincidan con "${terminoBusqueda}".` : "Aún no hay pagos registrados en el sistema."}
                   </TableCell>
                 </TableRow>
               )}
@@ -142,7 +187,8 @@ const PagosCompletados = () => {
           </Table>
         </TableContainer>
       </Container>
-      {/*modal del recibo */}
+      
+      {/* MODAL DEL TICKET PARA IMPRIMIR */}
       <ReciboModal abierto={modalAbierto} alCerrar={cerrarRecibo} recibo={reciboSeleccionado} />
     </Box>
   );
