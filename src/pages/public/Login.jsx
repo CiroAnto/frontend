@@ -23,24 +23,29 @@ const Login = () => {
     setError(null);
 
     try {
-      const usuario = await loginAdmin({ username, password});
+      const usuario = await loginAdmin({ username, password });
       
-      // --- ¡AQUÍ ESTÁ LA MAGIA! Guardamos los datos completos ---
       localStorage.setItem('sesionActiva', 'true'); 
-      localStorage.setItem('username', usuario.username); // Guardamos el Folio o nombre de admin
+      localStorage.setItem('username', username);
+      
       if (usuario.token) {
-         localStorage.setItem('auth_token', usuario.token); // Guardamos el token real
+         localStorage.setItem('auth_token', usuario.token);
       }
 
-      if(usuario.role === 'admin') {
+      const rolDelUsuario = usuario.role || usuario.user?.role;
+
+      console.log("Rol detectado al iniciar sesión:", rolDelUsuario);
+
+      if (rolDelUsuario === 'admin') {
         navigate('/admin', { replace: true });
-      }else{
+      } else {
         navigate('/cliente', { replace: true });
       }
+
     } catch (error) {
       setError(error.response?.data?.message || 'Error en el login. Intenta de nuevo.');
       setPassword('');
-    }finally{
+    } finally {
       setCargando(false);
     }
   };
