@@ -7,12 +7,14 @@ import { PictureAsPdf as PdfIcon } from '@mui/icons-material';
 import NavbarCliente from '@/components/layout/NavbarCliente';
 import TarjetasResumen from '@/pages/cliente/TarjetasResumen';
 import ModalFalla from '@/pages/cliente/ModalFalla';
+import ModalPago from '@/pages/cliente/ModalPago';
 
 import { obtenerClientes } from '@/services/clienteService';
-import { obtenerTodosPagos } from '@/services/pagoService';
+import { obtenerTodosPagos, registrarPago } from '@/services/pagoService';
 
 const PortalCliente = () => {
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalPagoAbierto, setModalPagoAbierto] = useState(false);
   const [alerta, setAlerta] = useState({ abierta: false, mensaje: '', tipo: 'success' });
   
   const [cliente, setCliente] = useState(null);
@@ -37,7 +39,6 @@ const PortalCliente = () => {
         
         if (miPerfil) {
           setCliente(miPerfil);
-          //buscar pagos
           const misPagos = todosLosPagos.filter(p => p.clienteId === miPerfil.clienteId);
           setHistorialPagos(misPagos);
         } else {
@@ -53,13 +54,42 @@ const PortalCliente = () => {
 
     cargarMiPortal();
   }, []);
+
   const manejarEnvioReporte = () => {
     setModalAbierto(false);
     setAlerta({ abierta: true, mensaje: 'Tu reporte ha sido enviado. Un técnico te contactará pronto.', tipo: 'success' });
   };
 
+  const procesarPago = async () => {
+    try {
+      const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      const mesCorrespondienteStr = `${meses[new Date().getMonth()]} ${new Date().getFullYear()}`;
+
+      const datosNuevoPago = {
+        clienteId: cliente.clienteId,         
+        montoPagado: cliente.montoMensual,    
+        metodoPago: 'Transferencia',          
+        mesCorrespondiente: mesCorrespondienteStr, 
+        referencia: 'Pago desde Portal Web'
+      };
+
+      await registrarPago(datosNuevoPago);
+
+      const pagosActualizados = await obtenerTodosPagos();
+      const misPagos = pagosActualizados.filter(p => p.clienteId === cliente.clienteId);
+      setHistorialPagos(misPagos);
+
+      setModalPagoAbierto(false);
+      setAlerta({ abierta: true, mensaje: '¡Pago registrado exitosamente!', tipo: 'success' });
+
+    } catch (error) {
+      console.error("Error al registrar el pago:", error);
+      setAlerta({ abierta: true, mensaje: 'Hubo un error al procesar tu pago. Intenta más tarde.', tipo: 'error' });
+    }
+  };
+
   const handlePagar = () => {
-    setAlerta({ abierta: true, mensaje: 'Redirigiendo a la pasarela de pago seguro...', tipo: 'info' });
+    setModalPagoAbierto(true);
   };
 
   if (cargando) {
@@ -70,6 +100,7 @@ const PortalCliente = () => {
       </Box>
     );
   }
+
   if (!cliente) {
     return (
       <Box sx={{ p: 5, textAlign: 'center' }}>
@@ -97,6 +128,7 @@ const PortalCliente = () => {
         {/* resumen */}
         <TarjetasResumen 
           cliente={cliente}
+          historialPagos={historialPagos} // <--- AÑADIR ESTA LÍNEA
           onAbrirSoporte={() => setModalAbierto(true)} 
           onPagar={handlePagar} 
         />
@@ -145,11 +177,18 @@ const PortalCliente = () => {
 
       </Container>
 
-      {/* componentes */}
+      {/* componentes flotantes */}
       <ModalFalla 
         abierto={modalAbierto} 
         alCerrar={() => setModalAbierto(false)} 
         onReporteEnviado={manejarEnvioReporte} 
+      />
+
+      <ModalPago 
+        abierto={modalPagoAbierto}
+        alCerrar={() => setModalPagoAbierto(false)}
+        cliente={cliente}
+        onPagoSimulado={procesarPago} 
       />
 
       <Snackbar open={alerta.abierta} autoHideDuration={5000} onClose={() => setAlerta({ ...alerta, abierta: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
