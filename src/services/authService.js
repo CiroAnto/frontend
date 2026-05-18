@@ -2,11 +2,16 @@ import clienteAxios from '../api/axios';
 
 export const loginAdmin = async (credenciales) => {
     try {
-        const respuesta = await clienteAxios.post('/auth/login', credenciales);
-        const { token, user } = respuesta.data.data ? respuesta.data.data : respuesta.data;
-        localStorage.setItem('auth_token', token);
+        // Hacemos la petición POST a la ruta /login de tu backend
+        const respuesta = await clienteAxios.post('auth/login', credenciales);
+        console.log("✅ FRONTEND: Respuesta recibida", respuesta.data);
+        // Extraemos el token y el usuario que nos responde Node.js
+        const { token, usuario } = respuesta.data.data;
+
+        // Guardamos el token en el navegador para mantener la sesión abierta
+        localStorage.setItem('admin_token', token);
         
-        return user;
+        return usuario;
     } catch (error) {
         console.error("Error en el login:", error.response?.data || error.message);
         throw error;
