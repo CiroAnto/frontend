@@ -4,8 +4,8 @@ import clienteAxios from '../api/axios';
 export const loginAdmin = async (credenciales) => {
     try {
         // Hacemos la petición POST a la ruta /login de tu backend
-        const respuesta = await clienteAxios.post('/login', credenciales);
-        
+        const respuesta = await clienteAxios.post('auth/login', credenciales);
+        console.log("✅ FRONTEND: Respuesta recibida", respuesta.data);
         // Extraemos el token y el usuario que nos responde Node.js
         const { token, usuario } = respuesta.data.data;
 
