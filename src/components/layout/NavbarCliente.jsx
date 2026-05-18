@@ -6,7 +6,7 @@ const NavbarCliente = () => {
   const navigate = useNavigate();
 
   const handleCerrarSesion = () => {
-    localStorage.removeItem('sesionActiva');
+    localStorage.clear();
     navigate('/login', { replace: true });
   };
 

@@ -16,37 +16,44 @@ function App() {
   if(!localStorage.getItem('localidad_activa')) {
     localStorage.setItem('localidad_activa', 'centro');
   }
+  
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/login" element={<Login />} />
+        
+        {/*rutas admin*/}
         <Route path="/admin" element={
-          <RutaProtegida><DashboardAdmin /></RutaProtegida>
+          <RutaProtegida rolRequerido="admin"><DashboardAdmin /></RutaProtegida>
         } />
         <Route path='/admin/clientes' element={
-          <RutaProtegida><AdminClientes /> </RutaProtegida>
+          <RutaProtegida rolRequerido="admin"><AdminClientes /> </RutaProtegida>
         } />
         <Route path="/admin/clientes/nuevo" element={
-          <RutaProtegida><NuevoCliente /></RutaProtegida>
+          <RutaProtegida rolRequerido="admin"><NuevoCliente /></RutaProtegida>
         } />
         <Route path="/admin/editar-cliente/:id" element={
-          <RutaProtegida> <EditarCliente /></RutaProtegida>
+          <RutaProtegida rolRequerido="admin"><EditarCliente /></RutaProtegida>
         } />
         <Route path="/admin/pagos-pendientes" element={
-          <RutaProtegida> <PagosPendientes /></RutaProtegida>
+          <RutaProtegida rolRequerido="admin"><PagosPendientes /></RutaProtegida>
         } />
         <Route path='/admin/pagados' element={
-          <RutaProtegida> <PagosCompletados/> </RutaProtegida>
+          <RutaProtegida rolRequerido="admin"><PagosCompletados/> </RutaProtegida>
         }/>
         <Route path="/admin/ajustes" element={
-          <RutaProtegida><AdminAjustes /></RutaProtegida>
+          <RutaProtegida rolRequerido="admin"><AdminAjustes /></RutaProtegida>
         } />
+
+        {/*rutas cliente */}
         <Route path="/cliente" element={
-          <RutaProtegida> <PortalCliente /> </RutaProtegida>
+          <RutaProtegida rolRequerido="client"><PortalCliente /> </RutaProtegida>
         } />
+        
       </Routes>
     </BrowserRouter>
   )
 }
-export default App
+
+export default App;

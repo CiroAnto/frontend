@@ -52,7 +52,7 @@ const AdminAjustes = () => {
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
+    localStorage.clear();
     navigate('/login', { replace: true });
   };
 
