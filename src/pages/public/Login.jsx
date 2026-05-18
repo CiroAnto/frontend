@@ -24,9 +24,16 @@ const Login = () => {
 
     try {
       const usuario = await loginAdmin({ username, password});
-      localStorage.setItem('sesionActiva', 'true'); //guardar llave de sesion
+      
+      // --- ¡AQUÍ ESTÁ LA MAGIA! Guardamos los datos completos ---
+      localStorage.setItem('sesionActiva', 'true'); 
+      localStorage.setItem('username', usuario.username); // Guardamos el Folio o nombre de admin
+      if (usuario.token) {
+         localStorage.setItem('auth_token', usuario.token); // Guardamos el token real
+      }
+
       if(usuario.role === 'admin') {
-        navigate('/admin', { replace: true }); //navegar al dashboard y reemplazar historial
+        navigate('/admin', { replace: true });
       }else{
         navigate('/cliente', { replace: true });
       }
@@ -80,27 +87,12 @@ const Login = () => {
             {/*formulario*/}
             <form onSubmit={procesarLogin}>
               
-              <TextField
-                id="username"
-                label="Nombre de usuario"
-                type="text"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={cargando}
-                style={{ marginBottom: '20px' }}
+              <TextField id="username" label="Usuario o Folio de Cliente" type="text" variant="outlined" fullWidth margin="normal" required value={username}
+                onChange={(e) => setUsername(e.target.value)} disabled={cargando} style={{ marginBottom: '20px' }}
+                helperText="Clientes: Usa tu folio como usuario y tu telefono como contraseña"
               />
 
-              <TextField
-                id="password"
-                label="Contraseña"
-                type={showPassword ? 'text' : 'password'}
-                variant="outlined"
-                fullWidth
-                margin="normal"
+              <TextField id="password" label="Contraseña" type={showPassword ? 'text' : 'password'} variant="outlined" fullWidth margin="normal"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -123,11 +115,7 @@ const Login = () => {
                 </Link>
               </Box>
 
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                color="primary"
+              <Button type="submit" fullWidth variant="contained" color="primary"
                 style={{ padding: '12px', fontSize: '1rem', fontWeight: 'bold', textTransform: 'none', borderRadius: '8px', backgroundColor: '#3498db' }}
                 disabled={cargando}
               >
