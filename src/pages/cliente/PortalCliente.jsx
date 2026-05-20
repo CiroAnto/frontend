@@ -8,6 +8,7 @@ import NavbarCliente from '@/components/layout/NavbarCliente';
 import TarjetasResumen from '@/pages/cliente/TarjetasResumen';
 import ModalFalla from '@/pages/cliente/ModalFalla';
 import ModalPago from '@/pages/cliente/ModalPago';
+import { generarReciboPDF } from '@/utils/generarReciboPDF';
 
 import { obtenerClientes } from '@/services/clienteService';
 import { obtenerTodosPagos, registrarPago } from '@/services/pagoService';
@@ -158,7 +159,7 @@ const PortalCliente = () => {
                     <TableCell sx={{ fontWeight: 'bold', color: '#27ae60' }}>${pago.montoPagado.toFixed(2)}</TableCell>
                     <TableCell>{pago.metodoPago}</TableCell>
                     <TableCell align="center">
-                      <Button variant="text" startIcon={<PdfIcon />} sx={{ color: '#e74c3c', textTransform: 'none', fontWeight: 'bold' }}>
+                      <Button variant="text" startIcon={<PdfIcon />} sx={{ color: '#e74c3c', textTransform: 'none', fontWeight: 'bold' }} onClick={() => generarReciboPDF(cliente, pago)}>
                         Descargar
                       </Button>
                     </TableCell>
