@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Box, Container, Grid, Card, CardContent, Typography, CircularProgress } from "@mui/material";
+import { useState, useEffect, useRef } from 'react';
+import { Box, Container, Card, CardContent, Typography, CircularProgress, Avatar } from "@mui/material";
 import { People as PeopleIcon, AttachMoney as MoneyIcon, Warning as WarningIcon, PersonAdd as PersonAddIcon } from "@mui/icons-material";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, ArcElement } from 'chart.js';
+import { Line, Doughnut } from 'react-chartjs-2';
 import AdminNavbar from '@/components/layout/AdminNavbar';
 import { obtenerClientes } from '@/services/clienteService';
 import { obtenerTodosPagos } from '@/services/pagoService';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, ArcElement);
 
 const DashboardAdmin = () => {
   const [cargando, setCargando] = useState(true);
+  const chartRef = useRef(null); // Ref para el gradiente de la gráfica de líneas
   
   const [metricas, setMetricas] = useState({
     activos: 0,
@@ -19,10 +20,11 @@ const DashboardAdmin = () => {
     nuevosClientes: 0
   });
 
-  const [datosGrafica, setDatosGrafica] = useState({
-    labels: [],
-    datasets: []
-  });
+  const [datosGrafica, setDatosGrafica] = useState({ labels: [], datasets: [] });
+  const [datosDoughnut, setDatosDoughnut] = useState({ labels: [], datasets: [] });
+
+  const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const fechaHoyStr = new Date().toLocaleDateString('es-MX', opcionesFecha);
 
   useEffect(() => {
     const calcularMetricas = async () => {
@@ -38,6 +40,7 @@ const DashboardAdmin = () => {
         const diaHoy = fechaActual.getDate();
         const mesActualNum = fechaActual.getMonth();
         const anioActualNum = fechaActual.getFullYear();
+        
         const clientesActivos = clientes.filter(c => c.active !== false);
         const pagosEsteMes = pagos.filter(p => p.mesCorrespondiente === mesActualStr);
         
@@ -64,6 +67,7 @@ const DashboardAdmin = () => {
           nuevosClientes: nuevos
         });
 
+        // 1. Datos e Inyección de Gradiente en Gráfica de Líneas
         const ultimos6MesesLabels = [];
         const ultimos6MesesData = [];
 
@@ -72,12 +76,22 @@ const DashboardAdmin = () => {
           const mesStrBD = `${meses[d.getMonth()]} ${d.getFullYear()}`;
           const mesCorto = meses[d.getMonth()].substring(0, 3); 
           
-          ultimos6MesesLabels.push(mesCorto);
+          gridLabels(ultimos6MesesLabels, mesCorto);
+          
           const ingresosDelMesI = pagos
             .filter(p => p.mesCorrespondiente === mesStrBD)
             .reduce((suma, p) => suma + (p.montoPagado || 0), 0);
             
           ultimos6MesesData.push(ingresosDelMesI);
+        }
+
+        // Crear gradiente dinámico para el área de la gráfica de líneas
+        let gradient = 'rgba(52, 152, 219, 0.1)';
+        if (chartRef.current) {
+          const ctx = chartRef.current.ctx;
+          gradient = ctx.createLinearGradient(0, 0, 0, 300);
+          gradient.addColorStop(0, 'rgba(52, 152, 219, 0.4)'); // Azul tenue arriba
+          gradient.addColorStop(1, 'rgba(52, 152, 219, 0.0)'); // Transparente abajo
         }
 
         setDatosGrafica({
@@ -86,9 +100,29 @@ const DashboardAdmin = () => {
             label: 'Ingresos Mensuales (MXN)',
             data: ultimos6MesesData,
             borderColor: '#3498db',
-            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+            backgroundColor: gradient, // Aplicamos el gradiente difuminado
             fill: true,
-            tension: 0.4,
+            tension: 0.45, // Suavizado y curvatura fluida de la línea (smooth)
+            pointBackgroundColor: '#2980b9',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7
+          }]
+        });
+
+        // Helper rápido para evitar duplicar código en el loop
+        function gridLabels(arr, val) { arr.push(val); }
+
+        // 2. Gráfica de Dona (Estado exacto de clientes para evitar confusiones)
+        const clientesAlDia = clientesActivos.length - contVencidos;
+        setDatosDoughnut({
+          labels: ['Al corriente', 'Vencidos'],
+          datasets: [{
+            data: [clientesAlDia, contVencidos],
+            backgroundColor: ['#2ecc71', '#e74c3c'], // Colores planos limpios
+            borderWidth: 0,
+            weight: 1
           }]
         });
 
@@ -100,75 +134,297 @@ const DashboardAdmin = () => {
     };
 
     calcularMetricas();
-  }, []);
+  }, [cargando]); // Se recalcula cuando cambia el estado de carga inicial o al refrescar
 
   const opcionesGrafica = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'top' } },
+    plugins: { 
+      legend: { display: false } // Quitamos la leyenda repetitiva para limpiar el canvas
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { borderDash: [6, 6], color: '#eaeded' }, ticks: { color: '#7f8c8d' } },
+      x: { grid: { display: false }, ticks: { color: '#7f8c8d' } }
+    }
   };
 
-  // array dinamico para tarjetas
+  const opcionesDoughnut = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { 
+      legend: { position: 'bottom', labels: { boxWidth: 12, font: { weight: 'bold' } } },
+      tooltip: {
+        callbacks: {
+          label: (context) => ` ${context.label}: ${context.raw} clientes` // Aclara el número exacto al pasar el cursor
+        }
+      }
+    },
+    cutout: '75%',
+  };
+
+  // 3. REFINAMIENTO DE TARJETAS KPI (Flexbox interno, Avatares con Opacidad y Variantes de texto)
   const metricasData = [
-    { titulo: 'Clientes Activos', valor: metricas.activos, detalle: 'En total', color: '#3498db', icono: <PeopleIcon sx={{ color: '#3498db' }} />, detalleColor: 'text.secondary' },
-    { titulo: 'Ingresos del Mes', valor: `$ ${metricas.ingresosMes.toFixed(2)}`, detalle: 'MXN cobrados', color: '#27ae60', icono: <MoneyIcon sx={{ color: '#27ae60' }} />, detalleColor: 'text.secondary' },
-    { titulo: 'Pagos Vencidos', valor: metricas.vencidos, detalle: 'Requieren corte', color: '#e74c3c', icono: <WarningIcon sx={{ color: '#e74c3c' }} />, detalleColor: '#e74c3c' },
-    { titulo: 'Nuevos Clientes', valor: metricas.nuevosClientes, detalle: 'Registrados este mes', color: '#9b59b6', icono: <PersonAddIcon sx={{ color: '#9b59b6' }} />, detalleColor: 'text.secondary' }
+    { titulo: 'Clientes Activos', valor: metricas.activos, detalle: 'En total', color: '#3498db', bgTenue: 'rgba(52, 152, 219, 0.12)', icono: <PeopleIcon sx={{ color: '#3498db' }} /> },
+    { titulo: 'Ingresos del Mes', valor: `$${metricas.ingresosMes.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, detalle: 'MXN cobrados', color: '#2ecc71', bgTenue: 'rgba(46, 204, 113, 0.12)', icono: <MoneyIcon sx={{ color: '#2ecc71' }} /> },
+    { titulo: 'Pagos Vencidos', valor: metricas.vencidos, detalle: `${metricas.vencidos} requieren corte`, color: '#e74c3c', bgTenue: 'rgba(231, 76, 60, 0.12)', icono: <WarningIcon sx={{ color: '#e74c3c' }} />, esAlerta: true },
+    { titulo: 'Nuevos Clientes', valor: metricas.nuevosClientes, detalle: 'Registrados este mes', color: '#9b59b6', bgTenue: 'rgba(155, 89, 182, 0.12)', icono: <PersonAddIcon sx={{ color: '#9b59b6' }} /> }
   ];
 
   return (
-    <Box sx={{ flexGrow: 1, backgroundColor: '#f4f6f8', minHeight: '100vh', pb: 5 }}>
+    <Box
+      sx={{
+        flexGrow: 1,
+        backgroundColor: "#f4f6f8",
+        minHeight: "100vh",
+        pb: 5,
+      }}
+    >
       <AdminNavbar />
 
       <Container maxWidth="lg">
-        <Typography variant="h4" sx={{ color: '#2c3e50', fontWeight: 'bold', mb: 1, mt: 4 }}>
-          Panel de Control
-        </Typography>
-        <Typography variant="subtitle1" sx={{ color: '#7f8c8d', mb: 4 }}>
-          Métricas generales de la empresa
-        </Typography>
+        {/* Cabecera */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            mt: 4,
+            mb: 4,
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{ color: "#2c3e50", fontWeight: "bold", mb: 1 }}
+            >
+              Panel de Control
+            </Typography>
+            <Typography variant="subtitle1" sx={{ color: "#7f8c8d" }}>
+              Métricas generales de la empresa
+            </Typography>
+          </Box>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "#95a5a6",
+              fontWeight: "bold",
+              textTransform: "capitalize",
+            }}
+          >
+            {fechaHoyStr}
+          </Typography>
+        </Box>
 
         {cargando ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', flexDirection: 'column' }}>
-             <CircularProgress />
-             <Typography sx={{ mt: 2, color: '#7f8c8d' }}>Analizando datos de la empresa...</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "50vh",
+              flexDirection: "column",
+            }}
+          >
+            <CircularProgress />
+            <Typography sx={{ mt: 2, color: "#7f8c8d" }}>
+              Analizando datos de la empresa...
+            </Typography>
           </Box>
         ) : (
           <>
-            {/* tarjetas */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            {/* RENDER DE TARJETAS REFINADAS */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  xl: "repeat(4, 1fr)",
+                },
+                gap: 3,
+                mb: 4,
+              }}
+            >
               {metricasData.map((metrica, index) => (
-                <Grid item xs={12} sm={6} md={3} key={index}>
-                  <Card sx={{ borderRadius: 3, borderLeft: `5px solid ${metrica.color}`, boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography color="text.secondary" fontWeight="bold">{metrica.titulo}</Typography>
-                        {metrica.icono}
+                <Box key={index}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      "&:hover": {
+                        transform: "translateY(-4px)",
+                        boxShadow: "0 6px 15px rgba(0,0,0,0.06)",
+                      },
+                    }}
+                  >
+                    <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
+                      {/* Estructura Superior Separada con Flexbox */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          mb: 1,
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "text.secondary", fontWeight: "600" }}
+                        >
+                          {metrica.titulo}
+                        </Typography>
+                        {/* Avatar con fondo tenue y opacidad del 12% */}
+                        <Avatar
+                          sx={{
+                            bgcolor: metrica.bgTenue,
+                            width: 42,
+                            height: 42,
+                            borderRadius: 2,
+                          }}
+                        >
+                          {metrica.icono}
+                        </Avatar>
                       </Box>
-                      <Typography variant="h4" component="div" fontWeight="bold">{metrica.valor}</Typography>
-                      <Typography variant="body2" sx={{ color: metrica.detalleColor, mt: 1, fontWeight: metrica.detalleColor !== 'text.secondary' ? 'bold' : 'normal' }}>
+
+                      <Typography
+                        variant="h4"
+                        fontWeight="bold"
+                        sx={{ color: "#2c3e50", mb: 0.5 }}
+                      >
+                        {metrica.valor}
+                      </Typography>
+
+                      {/* Texto inferior unificado con variant="caption" */}
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{
+                          color: metrica.esAlerta
+                            ? "#e74c3c"
+                            : "text.secondary",
+                          fontWeight: metrica.esAlerta ? "bold" : "normal",
+                        }}
+                      >
                         {metrica.detalle}
                       </Typography>
                     </CardContent>
                   </Card>
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* GRÁFICA */}
-            <Card sx={{ borderRadius: 3, boxShadow: '0 4px 10px rgba(0,0,0,0.05)', p: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ color: '#2c3e50', fontWeight: 'bold', mb: 3 }}>
-                  Crecimiento de Ingresos Mensuales
-                </Typography>
-                <Box sx={{ height: 350, width: '100%' }}>
-                  <Line data={datosGrafica} options={opcionesGrafica} />
                 </Box>
-              </CardContent>
-            </Card>
+              ))}
+            </Box>
+
+            {/* SECCIÓN DE SECCIONES ANALÍTICAS */}
+            {/* SECCIÓN ANALÍTICA */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  lg: "2fr 1fr",
+                },
+                gap: 4,
+                alignItems: "stretch",
+              }}
+            >
+              {/* GRÁFICA DE LÍNEAS */}
+              <Card
+                sx={{
+                  borderRadius: 4,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                  p: 1.5,
+                  height: "100%",
+                }}
+              >
+                <CardContent>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: "#2c3e50",
+                      fontWeight: "bold",
+                      mb: 3,
+                    }}
+                  >
+                    Evolución de Ingresos Mensuales
+                  </Typography>
+
+                  <Box sx={{ height: 320, width: "100%" }}>
+                    <Line
+                      ref={chartRef}
+                      data={datosGrafica}
+                      options={opcionesGrafica}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+
+              {/* GRÁFICA DONA */}
+              <Card
+                sx={{
+                  borderRadius: 4,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                  p: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                }}
+              >
+                <CardContent>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: "#2c3e50",
+                      fontWeight: "bold",
+                      mb: 3,
+                      textAlign: "center",
+                    }}
+                  >
+                    Estado de Clientes
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      height: 220,
+                      position: "relative",
+                    }}
+                  >
+                    <Doughnut data={datosDoughnut} options={opcionesDoughnut} />
+
+                    {/* TEXTO CENTRAL */}
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="h4"
+                        fontWeight="bold"
+                        color="#2c3e50"
+                      >
+                        {metricas.activos}
+                      </Typography>
+
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "text.secondary",
+                          fontWeight: "bold",
+                          letterSpacing: 1,
+                        }}
+                      >
+                        CLIENTES
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
           </>
         )}
-
       </Container>
     </Box>
   );
