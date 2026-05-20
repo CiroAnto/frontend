@@ -24,6 +24,17 @@ export const logoutAdmin = () => {
     window.location.href = '/login';
 };
 
+export const registrarAdmin = async (datosAdmin) => {
+    try {
+
+        const respuesta = await clienteAxios.post('/auth/register', datosAdmin);
+        return respuesta.data;
+    } catch (error) {
+        console.error("Error al registrar administrador:", error.response?.data || error.message);
+        throw error.response?.data?.message || "Ocurrió un error al crear el administrador";
+    }
+}
+
 export const actualizarPerfil = async (username, datosActualizados) => {
     try {
         const respuesta = await clienteAxios.put(`/auth/userUpdate/${username}`, datosActualizados);

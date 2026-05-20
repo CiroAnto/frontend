@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Typography, Grid, Snackbar, Alert } from '@mui/material';
+import { Box, Container, Typography, Grid, Snackbar, Alert, Button } from '@mui/material';
 import AdminNavbar from '@/components/layout/AdminNavbar';
+import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { actualizarPerfil, obtenerPerfil } from '@/services/authService';
+import { actualizarPerfil, obtenerPerfil, registrarAdmin } from '@/services/authService';
 
 import TarjetaPerfil from '@/components/ui/TarjetaPerfil';
 import FormularioPerfil from '@/components/ui/FormularioPerfil';
+import ModalNuevoAdmin from '@/components/ui/ModalNuevoAdmin';
 
 const AdminAjustes = () => {
   const navigate = useNavigate();
@@ -22,6 +24,11 @@ const AdminAjustes = () => {
   const [cargando, setCargando] = useState(false);
   const [alertaGuardado, setAlertaGuardado] = useState(false);
   const [errorValidacion, setErrorValidacion] = useState('');
+
+  const [modalAdminAbierto, setModalAdminAbierto] = useState(false);
+  const [cargandoNuevoAdmin, setCargandoNuevoAdmin] = useState(false);
+  const [errorNuevoAdmin, setErrorNuevoAdmin] = useState('');
+  const [alertaNuevoAdmin, setAlertaNuevoAdmin] = useState(false);
 
   useEffect(() => {
     const cargarDatosPerfil = async () => {
@@ -84,18 +91,43 @@ const AdminAjustes = () => {
     }
   };
 
+  const handleCrearAdmin = async (datosNuevoAdmin) => {
+    setErrorNuevoAdmin('');
+    setCargandoNuevoAdmin(true);
+    try {
+      await registrarAdmin(datosNuevoAdmin);
+      setModalAdminAbierto(false); // Cerramos el modal
+      setAlertaNuevoAdmin(true);   // Mostramos alerta de éxito
+    } catch (error) {
+      setErrorNuevoAdmin(error);
+    } finally {
+      setCargandoNuevoAdmin(false);
+    }
+  };
+
   return (
     <Box sx={{ flexGrow: 1, backgroundColor: '#f4f6f8', minHeight: '100vh', pb: 5 }}>
       <AdminNavbar />
 
       <Container maxWidth="lg">
-        <Box sx={{ mb: 4, mt: 4 }}>
-          <Typography variant="h4" sx={{ color: '#2c3e50', fontWeight: 'bold', mb: 1 }}>
+        <Box sx={{ mb: 4, mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h4" sx={{ color: '#2c3e50', fontWeight: 'bold', mb: 1 }}>
             Configuración de Cuenta
           </Typography>
           <Typography variant="subtitle1" sx={{ color: '#7f8c8d' }}>
             Administración del perfil de empleado
           </Typography>
+          </Box>
+          <Button 
+            variant="contained" 
+            color="success"
+            startIcon={<PersonAddIcon />}
+            onClick={() => setModalAdminAbierto(true)}
+            sx={{ fontWeight: 'bold', px: 3, py: 1.5 }}
+          >
+            Nuevo Administrador
+          </Button>
         </Box>
 
         <Grid container spacing={4}>
@@ -121,9 +153,23 @@ const AdminAjustes = () => {
         </Grid>
       </Container>
 
+      <ModalNuevoAdmin 
+        abierto={modalAdminAbierto}
+        alCerrar={() => setModalAdminAbierto(false)}
+        onSubmit={handleCrearAdmin}
+        cargando={cargandoNuevoAdmin}
+        error={errorNuevoAdmin}
+      />
+
       <Snackbar open={alertaGuardado} autoHideDuration={4000} onClose={() => setAlertaGuardado(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert onClose={() => setAlertaGuardado(false)} severity="success" sx={{ width: '100%', fontWeight: 'bold' }}>
           ¡Perfil actualizado correctamente!
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={alertaNuevoAdmin} autoHideDuration={5000} onClose={() => setAlertaNuevoAdmin(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert onClose={() => setAlertaNuevoAdmin(false)} severity="success" sx={{ width: '100%', fontWeight: 'bold' }}>
+          ¡Nuevo administrador creado exitosamente!
         </Alert>
       </Snackbar>
     </Box>
