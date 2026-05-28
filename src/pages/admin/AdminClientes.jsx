@@ -22,10 +22,8 @@ const AdminClientes = () => {
       try {
         const data = await obtenerClientes();
         
-        // ¡EL CHISMOSO! Esto nos dirá qué está llegando realmente
         console.log("Datos recibidos del backend:", data); 
 
-        // Verificamos que sea un array válido antes de guardarlo
         if (Array.isArray(data)) {
             setClientes(data);
         } else {
@@ -55,29 +53,34 @@ const AdminClientes = () => {
 
     //funcion para eliminar cliente
     const confirmarEliminacion = async () => {
-        if (!clienteAEliminar) return;
-        setBorrando(true);
-        try {
-          await eliminarCliente(clienteAEliminar.clienteId);
-          setClientes(prev => prev.filter(c => c.clienteId !== clienteAEliminar.clienteId));
-          cerrarModal();
-        } catch (error) {
-          console.error("Error al eliminar cliente:", error);
-        } finally {
-          setBorrando(false);
-        }
-    }
+      if (!clienteAEliminar) return;
+      setBorrando(true);
+      try {
+        await eliminarCliente(clienteAEliminar.clienteId);
+        setClientes((prev) =>
+          prev.filter((c) => c.clienteId !== clienteAEliminar.clienteId),
+        );
+        cerrarModal();
+      } catch (error) {
+        console.error("Error al eliminar cliente:", error);
+      } finally {
+        setBorrando(false);
+      }
+    };
 
-    const clientesFiltrados = clientes.filter(cliente => {
-        // Usamos valores por defecto ('') por si un cliente viejo no tiene estos campos
-        const nombre = cliente?.name || '';
-        const apellido = cliente?.lastname || '';
-        const folio = cliente?.clienteId || '';
+    const clientesFiltrados = clientes.filter((cliente) => {
+      if (cliente?.isDeleted === true) return false;
+      // Usamos valores por defecto ('') por si un cliente viejo no tiene estos campos
+      const nombre = cliente?.name || "";
+      const apellido = cliente?.lastname || "";
+      const folio = cliente?.clienteId || "";
 
-        const nombreCompleto = `${nombre} ${apellido}`.toLowerCase();
-        const busca = busqueda.toLowerCase();
+      const nombreCompleto = `${nombre} ${apellido}`.toLowerCase();
+      const busca = busqueda.toLowerCase();
 
-        return nombreCompleto.includes(busca) || folio.toLowerCase().includes(busca);
+      return (
+        nombreCompleto.includes(busca) || folio.toLowerCase().includes(busca)
+      );
     });
 
   return (

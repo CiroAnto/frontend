@@ -11,7 +11,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 const DashboardAdmin = () => {
   const [cargando, setCargando] = useState(true);
-  const chartRef = useRef(null); // Ref para el gradiente de la gráfica de líneas
+  const chartRef = useRef(null);
   
   const [metricas, setMetricas] = useState({
     activos: 0,
@@ -85,13 +85,12 @@ const DashboardAdmin = () => {
           ultimos6MesesData.push(ingresosDelMesI);
         }
 
-        // Crear gradiente dinámico para el área de la gráfica de líneas
         let gradient = 'rgba(52, 152, 219, 0.1)';
         if (chartRef.current) {
           const ctx = chartRef.current.ctx;
           gradient = ctx.createLinearGradient(0, 0, 0, 300);
-          gradient.addColorStop(0, 'rgba(52, 152, 219, 0.4)'); // Azul tenue arriba
-          gradient.addColorStop(1, 'rgba(52, 152, 219, 0.0)'); // Transparente abajo
+          gradient.addColorStop(0, 'rgba(52, 152, 219, 0.4)');
+          gradient.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
         }
 
         setDatosGrafica({
@@ -100,9 +99,9 @@ const DashboardAdmin = () => {
             label: 'Ingresos Mensuales (MXN)',
             data: ultimos6MesesData,
             borderColor: '#3498db',
-            backgroundColor: gradient, // Aplicamos el gradiente difuminado
+            backgroundColor: gradient,
             fill: true,
-            tension: 0.45, // Suavizado y curvatura fluida de la línea (smooth)
+            tension: 0.45,
             pointBackgroundColor: '#2980b9',
             pointBorderColor: '#ffffff',
             pointBorderWidth: 2,
@@ -111,16 +110,14 @@ const DashboardAdmin = () => {
           }]
         });
 
-        // Helper rápido para evitar duplicar código en el loop
         function gridLabels(arr, val) { arr.push(val); }
 
-        // 2. Gráfica de Dona (Estado exacto de clientes para evitar confusiones)
         const clientesAlDia = clientesActivos.length - contVencidos;
         setDatosDoughnut({
           labels: ['Al corriente', 'Vencidos'],
           datasets: [{
             data: [clientesAlDia, contVencidos],
-            backgroundColor: ['#2ecc71', '#e74c3c'], // Colores planos limpios
+            backgroundColor: ['#2ecc71', '#e74c3c'],
             borderWidth: 0,
             weight: 1
           }]
@@ -134,13 +131,13 @@ const DashboardAdmin = () => {
     };
 
     calcularMetricas();
-  }, [cargando]); // Se recalcula cuando cambia el estado de carga inicial o al refrescar
+  }, [cargando]);
 
   const opcionesGrafica = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: { 
-      legend: { display: false } // Quitamos la leyenda repetitiva para limpiar el canvas
+      legend: { display: false }
     },
     scales: {
       y: { beginAtZero: true, grid: { borderDash: [6, 6], color: '#eaeded' }, ticks: { color: '#7f8c8d' } },
@@ -155,14 +152,13 @@ const DashboardAdmin = () => {
       legend: { position: 'bottom', labels: { boxWidth: 12, font: { weight: 'bold' } } },
       tooltip: {
         callbacks: {
-          label: (context) => ` ${context.label}: ${context.raw} clientes` // Aclara el número exacto al pasar el cursor
+          label: (context) => ` ${context.label}: ${context.raw} clientes`
         }
       }
     },
     cutout: '75%',
   };
 
-  // 3. REFINAMIENTO DE TARJETAS KPI (Flexbox interno, Avatares con Opacidad y Variantes de texto)
   const metricasData = [
     { titulo: 'Clientes Activos', valor: metricas.activos, detalle: 'En total', color: '#3498db', bgTenue: 'rgba(52, 152, 219, 0.12)', icono: <PeopleIcon sx={{ color: '#3498db' }} /> },
     { titulo: 'Ingresos del Mes', valor: `$${metricas.ingresosMes.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, detalle: 'MXN cobrados', color: '#2ecc71', bgTenue: 'rgba(46, 204, 113, 0.12)', icono: <MoneyIcon sx={{ color: '#2ecc71' }} /> },
@@ -314,7 +310,6 @@ const DashboardAdmin = () => {
               ))}
             </Box>
 
-            {/* SECCIÓN DE SECCIONES ANALÍTICAS */}
             {/* SECCIÓN ANALÍTICA */}
             <Box
               sx={{
