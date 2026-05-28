@@ -67,7 +67,6 @@ const DashboardAdmin = () => {
           nuevosClientes: nuevos
         });
 
-        // 1. Datos e Inyección de Gradiente en Gráfica de Líneas
         const ultimos6MesesLabels = [];
         const ultimos6MesesData = [];
 
@@ -228,7 +227,6 @@ const DashboardAdmin = () => {
           </Box>
         ) : (
           <>
-            {/* RENDER DE TARJETAS REFINADAS */}
             <Box
               sx={{
                 display: "grid",
@@ -255,7 +253,6 @@ const DashboardAdmin = () => {
                     }}
                   >
                     <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
-                      {/* Estructura Superior Separada con Flexbox */}
                       <Box
                         sx={{
                           display: "flex",
@@ -270,7 +267,6 @@ const DashboardAdmin = () => {
                         >
                           {metrica.titulo}
                         </Typography>
-                        {/* Avatar con fondo tenue y opacidad del 12% */}
                         <Avatar
                           sx={{
                             bgcolor: metrica.bgTenue,
@@ -291,7 +287,6 @@ const DashboardAdmin = () => {
                         {metrica.valor}
                       </Typography>
 
-                      {/* Texto inferior unificado con variant="caption" */}
                       <Typography
                         variant="caption"
                         display="block"

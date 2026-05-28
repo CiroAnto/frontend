@@ -27,7 +27,7 @@ const TarjetaPerfil = ({ nombre, username, onLogout }) => {
         sx={{ borderRadius: 2 }}
         onClick={onLogout}
       >
-        Cerrar Sesión Segura
+        Cerrar Sesión
       </Button>
     </Paper>
   );
